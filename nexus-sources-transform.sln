@@ -5,7 +5,11 @@ VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{6295313C-288E-4A6C-9249-CAE8FE9AFD8F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nexus.Sources.StructuredFile", "src\Nexus.Sources.Transform\Nexus.Sources.StructuredFile.csproj", "{08F86784-65C8-400D-B3F6-A6B6ACE3D02E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Nexus.Sources.Transform", "src\Nexus.Sources.Transform\Nexus.Sources.Transform.csproj", "{08F86784-65C8-400D-B3F6-A6B6ACE3D02E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{904BA389-3BD5-4FC4-9CD4-A87CAEC712E4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nexus.Sources.Transform.Tests", "tests\Nexus.Sources.Transform.Tests\Nexus.Sources.Transform.Tests.csproj", "{4698DF72-6D80-46F3-9BF1-59C811F1C338}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,12 +21,17 @@ Global
 		{08F86784-65C8-400D-B3F6-A6B6ACE3D02E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{08F86784-65C8-400D-B3F6-A6B6ACE3D02E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{08F86784-65C8-400D-B3F6-A6B6ACE3D02E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4698DF72-6D80-46F3-9BF1-59C811F1C338}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4698DF72-6D80-46F3-9BF1-59C811F1C338}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4698DF72-6D80-46F3-9BF1-59C811F1C338}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4698DF72-6D80-46F3-9BF1-59C811F1C338}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{08F86784-65C8-400D-B3F6-A6B6ACE3D02E} = {6295313C-288E-4A6C-9249-CAE8FE9AFD8F}
+		{4698DF72-6D80-46F3-9BF1-59C811F1C338} = {904BA389-3BD5-4FC4-9CD4-A87CAEC712E4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {38612147-E6A4-491A-99F8-20EE9B4DF1BE}
