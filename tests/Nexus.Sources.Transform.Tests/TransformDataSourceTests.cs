@@ -8,11 +8,14 @@ namespace Nexus.Sources.Tests;
 
 public class TransformDataSourceTests
 {
-    [Theory]
-    [InlineData(["foo in m/s", "foo_in_m_s", @"^.*in\s(.*)", "m/s"])]
-    public async Task CanProvideUnitFromOriginalResourceName(string originalName, string resourceId, string pattern, string expected)
+    [Fact]
+    public async Task CanProvideUnitFromOriginalResourceName()
     {
         // Arrange
+        var originalName = "foo in m/s";
+        var resourceId = "foo_in_m_s";
+        var pattern = @"^.*in\s(.*)";
+        var expected = "m/s";
 
         /* data source setup */
         var settings = new TransformSettings(
