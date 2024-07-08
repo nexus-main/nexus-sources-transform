@@ -6,8 +6,25 @@ using Nexus.Extensibility;
 
 namespace Nexus.Sources;
 
+internal enum TransformOperation
+{
+    Set,
+    SetIfNotExists
+    // Append,
+    // CreateArray
+}
+
+internal record Transform(
+    // TransformTarget target, /* (catalog vs. resource - maybe required later) */
+    TransformOperation Operation,
+    string SourcePattern,
+    string? TargetTemplate,
+    string SourcePath,
+    string TargetProperty
+);
+
 internal record TransformSettings(
-    string? UnitFromOriginalResourceNamePattern
+    Transform[] Transforms
 );
 
 /// <summary>
@@ -15,7 +32,9 @@ internal record TransformSettings(
 /// </summary>
 public class TransformDataSource : IDataSource
 {
-    private static readonly string[] _originalNamePath = [DataModelExtensions.OriginalNameKey];
+    private const string DEFAULT_TARGET_TEMPLATE = "$1";
+
+    private readonly Dictionary<string, string[]> _pathCache = new();
 
     private TransformSettings? _settings;
 
@@ -47,30 +66,68 @@ public class TransformDataSource : IDataSource
         {
             var resourceProperties = resource.Properties;
             var newResource = resource;
+            var newResourceProperties = default(Dictionary<string, JsonElement>);
 
-            var newResourceProperties = resourceProperties is null
-                ? []
-                : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
-
-            // extract unit from original resource name
-            if (_settings.UnitFromOriginalResourceNamePattern is not null)
+            if (_settings.Transforms is not null)
             {
-                var originalName = resourceProperties?.GetStringValue(_originalNamePath)!;
-                var match = Regex.Match(originalName, _settings.UnitFromOriginalResourceNamePattern);
-
-                if (match.Success && match.Groups.Count >= 2)
+                foreach (var transform in _settings.Transforms)
                 {
-                    newResourceProperties[DataModelExtensions.UnitKey]
-                        = JsonSerializer.SerializeToElement(match.Groups[1].Value);
+                    // get source value
+                    if (!_pathCache.TryGetValue(transform.SourcePath, out var sourcePathSegments))
+                    {
+                        sourcePathSegments = transform.SourcePath.Split('/');
+                        _pathCache[transform.SourcePath] = sourcePathSegments;
+                    }
+
+                    var sourceValue = resourceProperties?.GetStringValue(sourcePathSegments);
+
+                    if (sourceValue is null)
+                        continue;
+
+                    // get target value
+                    if (!_pathCache.TryGetValue(transform.TargetProperty, out var targetPathSegments))
+                    {
+                        targetPathSegments = [transform.TargetProperty];
+                        _pathCache[transform.TargetProperty] = targetPathSegments;
+                    }
+
+                    var targetValue = resourceProperties?.GetStringValue(targetPathSegments);
+
+                    if (targetValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
+                        continue;
+
+                    // get new target value
+                    if (newResourceProperties is null)
+                    {
+                        newResourceProperties = resourceProperties is null
+                            ? []
+                            : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
+                    }
+
+                    var newTargetValue = Regex
+                        .Replace(
+                            input: sourceValue, 
+                            pattern: transform.SourcePattern, 
+                            replacement: transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
+                        );
+
+                    newResourceProperties[transform.TargetProperty]
+                        = JsonSerializer.SerializeToElement(newTargetValue);
                 }
             }
 
-            newResource = resource with
+            if (newResourceProperties is null)
             {
-                Properties = newResourceProperties
-            };
+                newResources.Add(resource);
+            }
 
-            newResources.Add(newResource);
+            else
+            {
+                newResources.Add(resource with
+                {
+                    Properties = newResourceProperties
+                });
+            }
         }
 
         catalog = catalog with
