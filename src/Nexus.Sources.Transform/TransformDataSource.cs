@@ -9,6 +9,7 @@ namespace Nexus.Sources;
 internal enum TransformOperation
 {
     SetAlways,
+    
     SetIfNotExists
 }
 
