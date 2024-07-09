@@ -9,7 +9,7 @@ namespace Nexus.Sources;
 internal enum TransformOperation
 {
     SetAlways,
-    
+
     SetIfNotExists
 }
 
@@ -41,7 +41,7 @@ public class TransformDataSource : IDataSource
 {
     private const string DEFAULT_TARGET_TEMPLATE = "$1";
 
-    private readonly Dictionary<string, string[]> _pathCache = new();
+    private readonly Dictionary<string, string[]> _pathCache = [];
 
     private TransformSettings? _settings;
 
@@ -81,13 +81,13 @@ public class TransformDataSource : IDataSource
                 foreach (var transform in _settings.IdTransforms)
                 {
                     newId = Regex.Replace(
-                        newId, 
-                        transform.SourcePattern, 
+                        newId,
+                        transform.SourcePattern,
                         transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
                     );
                 }
 
-                if (_settings.IdTransforms.Any())
+                if (_settings.IdTransforms.Length != 0)
                     localResource = resource with { Id = newId };
             }
 
@@ -131,11 +131,10 @@ public class TransformDataSource : IDataSource
                             ? []
                             : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
                     }
-
                     var newTargetValue = Regex
                         .Replace(
-                            input: sourceValue, 
-                            pattern: transform.SourcePattern, 
+                            input: sourceValue,
+                            pattern: transform.SourcePattern,
                             replacement: transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
                         );
 

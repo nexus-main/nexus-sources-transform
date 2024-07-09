@@ -71,17 +71,17 @@ public class TransformDataSourceTests
 
     /* test the default target template ($1) which requires a single regex capture group */
     [InlineData([
-        "foo in m/s", 
-        @"^.*in\s(.*)", 
-        default, 
+        "foo in m/s",
+        @"^.*in\s(.*)",
+        default,
         "m/s"
     ])]
 
     /* test the combination of multiple back references */
     [InlineData([
-        "foo in meters per second", 
-        @"^.*in\s(.*) per (.*)", 
-        "$1/$2", 
+        "foo in meters per second",
+        @"^.*in\s(.*) per (.*)",
+        "$1/$2",
         "meters/second"
     ])]
 
