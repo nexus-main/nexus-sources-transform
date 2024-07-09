@@ -6,25 +6,33 @@ using Nexus.Extensibility;
 
 namespace Nexus.Sources;
 
-internal enum TransformOperation
-{
-    Set,
-    SetIfNotExists
-    // Append,
-    // CreateArray
-}
+// internal enum TransformOperation
+// {
+//     SetAlways,
+//     SetIfNotExists
+// }
 
-internal record Transform(
+internal record PropertyTransform(
     // TransformTarget target, /* (catalog vs. resource - maybe required later) */
-    TransformOperation Operation,
-    string SourcePattern,
-    string? TargetTemplate,
+    // TransformOperation Operation, /* (maybe required later)
     string SourcePath,
-    string TargetProperty
+    string SourcePattern,
+    string TargetProperty,
+    string? TargetTemplate,
+    string? Separator
+);
+
+internal record IdTransform(
+    // TransformTarget target, /* (catalog vs. resource - maybe required later) */
+    // TransformOperation Operation,
+    // string SourcePattern,
+    // string? TargetTemplate,
+    // string SourcePath,
+    // string TargetProperty
 );
 
 internal record TransformSettings(
-    Transform[] Transforms
+    PropertyTransform[] PropertyTransforms
 );
 
 /// <summary>
@@ -68,9 +76,9 @@ public class TransformDataSource : IDataSource
             var newResource = resource;
             var newResourceProperties = default(Dictionary<string, JsonElement>);
 
-            if (_settings.Transforms is not null)
+            if (_settings.PropertyTransforms is not null)
             {
-                foreach (var transform in _settings.Transforms)
+                foreach (var transform in _settings.PropertyTransforms)
                 {
                     // get source value
                     if (!_pathCache.TryGetValue(transform.SourcePath, out var sourcePathSegments))
@@ -93,8 +101,8 @@ public class TransformDataSource : IDataSource
 
                     var targetValue = resourceProperties?.GetStringValue(targetPathSegments);
 
-                    if (targetValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
-                        continue;
+                    // if (targetValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
+                    //     continue;
 
                     // get new target value
                     if (newResourceProperties is null)
@@ -111,8 +119,17 @@ public class TransformDataSource : IDataSource
                             replacement: transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
                         );
 
-                    newResourceProperties[transform.TargetProperty]
-                        = JsonSerializer.SerializeToElement(newTargetValue);
+                    if (transform.Separator is null)
+                    {
+                        newResourceProperties[transform.TargetProperty]
+                            = JsonSerializer.SerializeToElement(newTargetValue);
+                    }
+
+                    else
+                    {
+                        newResourceProperties[transform.TargetProperty]
+                            = JsonSerializer.SerializeToElement(newTargetValue.Split(transform.Separator));
+                    }
                 }
             }
 
