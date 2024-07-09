@@ -8,8 +8,68 @@ namespace Nexus.Sources.Tests;
 
 public class TransformDataSourceTests
 {
+    [Fact]
+    public async Task CanTransformResourceId()
+    {
+        // Arrange
+        var id = "temp_very_long_name_which_should_be_shortened_in_two_steps";
+        var sourcePattern1 = "(.*)very_long_name(.*)";
+        var targetTemplate1 = "$1VLN$2";
+        var sourcePattern2 = "(.*)_which_should_be_shortened_in_two_steps(.*)";
+        var targetTemplate2 = "$1WSBSI2S$2";
+        var expected = "temp_VLNWSBSI2S";
+
+        /* data source setup */
+        var transform1 = new IdTransform(
+            SourcePattern: sourcePattern1,
+            TargetTemplate: targetTemplate1
+        );
+
+        var transform2 = new IdTransform(
+            SourcePattern: sourcePattern2,
+            TargetTemplate: targetTemplate2
+        );
+
+        var settings = new TransformSettings(
+            IdTransforms: [transform1, transform2],
+            PropertyTransforms: []
+        );
+
+        var sourceConfiguration = JsonSerializer
+            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
+
+        var context = new DataSourceContext(
+            ResourceLocator: default,
+            SystemConfiguration: default,
+            SourceConfiguration: sourceConfiguration,
+            RequestConfiguration: default
+        );
+
+        var dataSource = new TransformDataSource();
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        /* catalog setup */
+        var resource = new ResourceBuilder(id: id)
+            .Build();
+
+        var catalog = new ResourceCatalogBuilder(id: "/bar")
+            .AddResource(resource)
+            .Build();
+
+        // Act
+        var actualCatalog = await dataSource
+            .EnrichCatalogAsync(catalog, CancellationToken.None);
+
+        // Assert
+        var actual = actualCatalog.Resources![0].Id;
+
+        Assert.Equal(expected, actual);
+    }
+
     [Theory]
 
+    /* test the default target template ($1) which requires a single regex capture group */
     [InlineData([
         "foo in m/s", 
         @"^.*in\s(.*)", 
@@ -17,6 +77,7 @@ public class TransformDataSourceTests
         "m/s"
     ])]
 
+    /* test the combination of multiple back references */
     [InlineData([
         "foo in meters per second", 
         @"^.*in\s(.*) per (.*)", 
@@ -35,6 +96,7 @@ public class TransformDataSourceTests
 
         /* data source setup */
         var transform = new PropertyTransform(
+            Operation: default,
             SourcePattern: sourcePattern,
             TargetTemplate: targetTemplate,
             SourcePath: DataModelExtensions.OriginalNameKey,
@@ -43,6 +105,7 @@ public class TransformDataSourceTests
         );
 
         var settings = new TransformSettings(
+            IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
@@ -92,6 +155,7 @@ public class TransformDataSourceTests
 
         /* data source setup */
         var transform = new PropertyTransform(
+            Operation: default,
             SourcePattern: sourcePattern,
             TargetTemplate: targetTemplate,
             SourcePath: DataModelExtensions.OriginalNameKey,
@@ -100,6 +164,7 @@ public class TransformDataSourceTests
         );
 
         var settings = new TransformSettings(
+            IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
@@ -137,63 +202,68 @@ public class TransformDataSourceTests
         Assert.Equal(expected, actual);
     }
 
-    // [Theory]
-    // [InlineData([nameof(TransformOperation.SetAlways), "foobar"])]
-    // [InlineData([nameof(TransformOperation.SetIfNotExists), "m/s"])]
-    // public async Task CanHandleDifferentTransformOperations(
-    //     string operationString,
-    //     string expected
-    // )
-    // {
-    //     // Arrange
-    //     var operation = Enum.Parse<TransformOperation>(operationString);
+    [Theory]
 
-    //     /* data source setup */
-    //     var transform = new PropertyTransform(
-    //         Operation: operation,
-    //         SourcePattern: ".*",
-    //         TargetTemplate: "$0",
-    //         SourcePath: DataModelExtensions.OriginalNameKey,
-    //         TargetProperty: DataModelExtensions.UnitKey,
-    //         Separator: default
-    //     );
+    /* test creation of missing value or replacement of wrong value */
+    [InlineData([nameof(TransformOperation.SetAlways), "foobar"])]
 
-    //     var settings = new TransformSettings(
-    //         PropertyTransforms: [transform]
-    //     );
+    /* test setting a default value (this is useful for default groups as well) */
+    [InlineData([nameof(TransformOperation.SetIfNotExists), "m/s"])]
+    public async Task CanHandleDifferentTransformOperations(
+        string operationString,
+        string expected
+    )
+    {
+        // Arrange
+        var operation = Enum.Parse<TransformOperation>(operationString);
 
-    //     var sourceConfiguration = JsonSerializer
-    //         .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
+        /* data source setup */
+        var transform = new PropertyTransform(
+            Operation: operation,
+            SourcePattern: ".*",
+            TargetTemplate: "$0",
+            SourcePath: DataModelExtensions.OriginalNameKey,
+            TargetProperty: DataModelExtensions.UnitKey,
+            Separator: default
+        );
 
-    //     var context = new DataSourceContext(
-    //         ResourceLocator: default,
-    //         SystemConfiguration: default,
-    //         SourceConfiguration: sourceConfiguration,
-    //         RequestConfiguration: default
-    //     );
+        var settings = new TransformSettings(
+            IdTransforms: [],
+            PropertyTransforms: [transform]
+        );
 
-    //     var dataSource = new TransformDataSource();
+        var sourceConfiguration = JsonSerializer
+            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
 
-    //     await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+        var context = new DataSourceContext(
+            ResourceLocator: default,
+            SystemConfiguration: default,
+            SourceConfiguration: sourceConfiguration,
+            RequestConfiguration: default
+        );
 
-    //     /* catalog setup */
-    //     var resource = new ResourceBuilder(id: "foo")
-    //         .WithOriginalName("foobar")
-    //         .WithUnit("m/s")
-    //         .Build();
+        var dataSource = new TransformDataSource();
 
-    //     var catalog = new ResourceCatalogBuilder(id: "/bar")
-    //         .AddResource(resource)
-    //         .Build();
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
-    //     // Act
-    //     var actualCatalog = await dataSource
-    //         .EnrichCatalogAsync(catalog, CancellationToken.None);
+        /* catalog setup */
+        var resource = new ResourceBuilder(id: "foo")
+            .WithOriginalName("foobar")
+            .WithUnit("m/s")
+            .Build();
 
-    //     // Assert
-    //     var actual = actualCatalog.Resources![0].Properties!
-    //         .GetStringValue([DataModelExtensions.UnitKey]);
+        var catalog = new ResourceCatalogBuilder(id: "/bar")
+            .AddResource(resource)
+            .Build();
 
-    //     Assert.Equal(expected, actual);
-    // }
+        // Act
+        var actualCatalog = await dataSource
+            .EnrichCatalogAsync(catalog, CancellationToken.None);
+
+        // Assert
+        var actual = actualCatalog.Resources![0].Properties!
+            .GetStringValue([DataModelExtensions.UnitKey]);
+
+        Assert.Equal(expected, actual);
+    }
 }

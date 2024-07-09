@@ -6,15 +6,15 @@ using Nexus.Extensibility;
 
 namespace Nexus.Sources;
 
-// internal enum TransformOperation
-// {
-//     SetAlways,
-//     SetIfNotExists
-// }
+internal enum TransformOperation
+{
+    SetAlways,
+    SetIfNotExists
+}
 
 internal record PropertyTransform(
     // TransformTarget target, /* (catalog vs. resource - maybe required later) */
-    // TransformOperation Operation, /* (maybe required later)
+    TransformOperation Operation,
     string SourcePath,
     string SourcePattern,
     string TargetProperty,
@@ -24,15 +24,13 @@ internal record PropertyTransform(
 
 internal record IdTransform(
     // TransformTarget target, /* (catalog vs. resource - maybe required later) */
-    // TransformOperation Operation,
-    // string SourcePattern,
-    // string? TargetTemplate,
-    // string SourcePath,
-    // string TargetProperty
+    string SourcePattern,
+    string? TargetTemplate
 );
 
 internal record TransformSettings(
-    PropertyTransform[] PropertyTransforms
+    IdTransform[]? IdTransforms,
+    PropertyTransform[]? PropertyTransforms
 );
 
 /// <summary>
@@ -72,8 +70,29 @@ public class TransformDataSource : IDataSource
 
         foreach (var resource in catalog.Resources)
         {
-            var resourceProperties = resource.Properties;
-            var newResource = resource;
+            var localResource = resource;
+
+            // resource id
+            if (_settings.IdTransforms is not null)
+            {
+                var newId = resource.Id;
+
+                foreach (var transform in _settings.IdTransforms)
+                {
+                    newId = Regex.Replace(
+                        newId, 
+                        transform.SourcePattern, 
+                        transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
+                    );
+                }
+
+                if (_settings.IdTransforms.Any())
+                    localResource = resource with { Id = newId };
+            }
+
+            // resource properties
+
+            var resourceProperties = localResource.Properties;
             var newResourceProperties = default(Dictionary<string, JsonElement>);
 
             if (_settings.PropertyTransforms is not null)
@@ -101,8 +120,8 @@ public class TransformDataSource : IDataSource
 
                     var targetValue = resourceProperties?.GetStringValue(targetPathSegments);
 
-                    // if (targetValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
-                    //     continue;
+                    if (targetValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
+                        continue;
 
                     // get new target value
                     if (newResourceProperties is null)
@@ -135,12 +154,12 @@ public class TransformDataSource : IDataSource
 
             if (newResourceProperties is null)
             {
-                newResources.Add(resource);
+                newResources.Add(localResource);
             }
 
             else
             {
-                newResources.Add(resource with
+                newResources.Add(localResource with
                 {
                     Properties = newResourceProperties
                 });
