@@ -1,4 +1,3 @@
-<!-- ## v2.0.0-beta.24 - 2024-03-15
+## v2.0.0-beta.33 - 2024-12-17
 
-- Follow Nexus changes.
- -->
+- Follow Nexus changes
