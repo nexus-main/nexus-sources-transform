@@ -37,6 +37,10 @@ internal record TransformSettings(
 /// <summary>
 /// A data source which helps transforming the resources and properties of a catalog.
 /// </summary>
+[ExtensionDescription(
+    "A data source to transform catalog properties like resources names and group memberships",
+    "https://github.com/nexus-main/nexus-sources-transform",
+    "https://github.com/nexus-main/nexus-sources-transform")]
 public class TransformDataSource : IDataSource
 {
     private const string DEFAULT_TARGET_TEMPLATE = "$1";
