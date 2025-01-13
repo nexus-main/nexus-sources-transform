@@ -1,3 +1,7 @@
+## v2.0.0-beta.39 - 2025-01-13
+
+- Fixed the extension name
+
 ## v2.0.0-beta.38 - 2025-01-13
 
 - Added missing attribute to data source class
