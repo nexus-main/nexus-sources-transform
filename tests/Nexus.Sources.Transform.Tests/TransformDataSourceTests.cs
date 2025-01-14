@@ -67,6 +67,62 @@ public class TransformDataSourceTests
         Assert.Equal(expected, actual);
     }
 
+    [Fact]
+    public async Task CanDeriveIdFromOriginalName()
+    {
+        // Arrange
+        var originalName = "v_horz_100m_blue_avg in m/s";
+        var sourcePattern = @"(.*)\sin .*";
+        var expected = "v_horz_100m_blue_avg";
+
+        /* data source setup */
+        var transform = new PropertyTransform(
+            Operation: default,
+            SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: sourcePattern,
+            TargetProperty: default,
+            TargetTemplate: default,
+            Separator: default
+        );
+
+        var settings = new TransformSettings(
+            IdTransforms: [],
+            PropertyTransforms: [transform]
+        );
+
+        var sourceConfiguration = JsonSerializer
+            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
+
+        var context = new DataSourceContext(
+            ResourceLocator: default,
+            SystemConfiguration: default,
+            SourceConfiguration: sourceConfiguration,
+            RequestConfiguration: default
+        );
+
+        var dataSource = new Transform();
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        /* catalog setup */
+        var resource = new ResourceBuilder(id: "foo")
+            .WithOriginalName(originalName)
+            .Build();
+
+        var catalog = new ResourceCatalogBuilder(id: "/bar")
+            .AddResource(resource)
+            .Build();
+
+        // Act
+        var actualCatalog = await dataSource
+            .EnrichCatalogAsync(catalog, CancellationToken.None);
+
+        // Assert
+        var actual = actualCatalog.Resources![0].Id;
+
+        Assert.Equal(expected, actual);
+    }
+
     [Theory]
 
     /* test the default target template ($1) which requires a single regex capture group */
@@ -213,62 +269,6 @@ public class TransformDataSourceTests
     }
 
     [Fact]
-    public async Task DoesNotModifyPropertiesIfNoMatch()
-    {
-        // Arrange
-        var originalName = "foo in meters per second";
-        var sourcePattern = ".^";
-
-        /* data source setup */
-        var transform = new PropertyTransform(
-            Operation: default,
-            SourcePath: DataModelExtensions.OriginalNameKey,
-            SourcePattern: sourcePattern,
-            TargetProperty: DataModelExtensions.UnitKey,
-            TargetTemplate: default,
-            Separator: default
-        );
-
-        var settings = new TransformSettings(
-            IdTransforms: [],
-            PropertyTransforms: [transform]
-        );
-
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
-            ResourceLocator: default,
-            SystemConfiguration: default,
-            SourceConfiguration: sourceConfiguration,
-            RequestConfiguration: default
-        );
-
-        var dataSource = new Transform();
-
-        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
-
-        /* catalog setup */
-        var resource = new ResourceBuilder(id: "foo")
-            .WithOriginalName(originalName)
-            .Build();
-
-        var catalog = new ResourceCatalogBuilder(id: "/bar")
-            .AddResource(resource)
-            .Build();
-
-        // Act
-        var actualCatalog = await dataSource
-            .EnrichCatalogAsync(catalog, CancellationToken.None);
-
-        // Assert
-        var actual = actualCatalog.Resources![0].Properties!
-            .GetStringValue([DataModelExtensions.UnitKey]);
-
-        Assert.Null(actual);
-    }
-
-    [Fact]
     public async Task CanDeriveGroupsFromOriginalName()
     {
         // Arrange
@@ -323,62 +323,6 @@ public class TransformDataSourceTests
         // Assert
         var actual = actualCatalog.Resources![0].Properties!
             .GetStringArray([DataModelExtensions.GroupsKey]);
-
-        Assert.Equal(expected, actual);
-    }
-
-    [Fact]
-    public async Task CanDeriveIdFromOriginalName()
-    {
-        // Arrange
-        var originalName = "v_horz_100m_blue_avg in m/s";
-        var sourcePattern = @"(.*)\sin .*";
-        var expected = "v_horz_100m_blue_avg";
-
-        /* data source setup */
-        var transform = new PropertyTransform(
-            Operation: default,
-            SourcePath: DataModelExtensions.OriginalNameKey,
-            SourcePattern: sourcePattern,
-            TargetProperty: default,
-            TargetTemplate: default,
-            Separator: default
-        );
-
-        var settings = new TransformSettings(
-            IdTransforms: [],
-            PropertyTransforms: [transform]
-        );
-
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
-            ResourceLocator: default,
-            SystemConfiguration: default,
-            SourceConfiguration: sourceConfiguration,
-            RequestConfiguration: default
-        );
-
-        var dataSource = new Transform();
-
-        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
-
-        /* catalog setup */
-        var resource = new ResourceBuilder(id: "foo")
-            .WithOriginalName(originalName)
-            .Build();
-
-        var catalog = new ResourceCatalogBuilder(id: "/bar")
-            .AddResource(resource)
-            .Build();
-
-        // Act
-        var actualCatalog = await dataSource
-            .EnrichCatalogAsync(catalog, CancellationToken.None);
-
-        // Assert
-        var actual = actualCatalog.Resources![0].Id;
 
         Assert.Equal(expected, actual);
     }
@@ -447,5 +391,61 @@ public class TransformDataSourceTests
             .GetStringValue([DataModelExtensions.UnitKey]);
 
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public async Task DoesNotModifyPropertiesIfNoMatch()
+    {
+        // Arrange
+        var originalName = "foo in meters per second";
+        var sourcePattern = ".^";
+
+        /* data source setup */
+        var transform = new PropertyTransform(
+            Operation: default,
+            SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: sourcePattern,
+            TargetProperty: DataModelExtensions.UnitKey,
+            TargetTemplate: default,
+            Separator: default
+        );
+
+        var settings = new TransformSettings(
+            IdTransforms: [],
+            PropertyTransforms: [transform]
+        );
+
+        var sourceConfiguration = JsonSerializer
+            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
+
+        var context = new DataSourceContext(
+            ResourceLocator: default,
+            SystemConfiguration: default,
+            SourceConfiguration: sourceConfiguration,
+            RequestConfiguration: default
+        );
+
+        var dataSource = new Transform();
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        /* catalog setup */
+        var resource = new ResourceBuilder(id: "foo")
+            .WithOriginalName(originalName)
+            .Build();
+
+        var catalog = new ResourceCatalogBuilder(id: "/bar")
+            .AddResource(resource)
+            .Build();
+
+        // Act
+        var actualCatalog = await dataSource
+            .EnrichCatalogAsync(catalog, CancellationToken.None);
+
+        // Assert
+        var actual = actualCatalog.Resources![0].Properties!
+            .GetStringValue([DataModelExtensions.UnitKey]);
+
+        Assert.Null(actual);
     }
 }

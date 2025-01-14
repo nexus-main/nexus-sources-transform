@@ -1,3 +1,7 @@
+## v2.0.0-beta.44 - 2025-01-14
+
+- Enabled the `PropertyTransform` to modify the resource ID.
+
 ## v2.0.0-beta.43 - 2025-01-14
 
 - Fixed a bug in the core algorithm
