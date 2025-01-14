@@ -1,3 +1,7 @@
+## v2.0.0-beta.43 - 2025-01-14
+
+- Fixed a bug in the core algorithm
+
 ## v2.0.0-beta.42 - 2025-01-14
 
 - Fixed a bug in the core algorithm

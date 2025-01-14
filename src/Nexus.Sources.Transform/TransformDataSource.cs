@@ -134,8 +134,9 @@ public class Transform : IDataSource
 
                     // get target value
                     var existingValue = newResourceProperties.GetValueOrDefault(transform.TargetProperty);
+                    var isNullOrUndefined = existingValue.ValueKind == JsonValueKind.Null || existingValue.ValueKind == JsonValueKind.Undefined;
 
-                    if (existingValue.ValueKind != JsonValueKind.Null && transform.Operation == TransformOperation.SetIfNotExists)
+                    if (!isNullOrUndefined && transform.Operation == TransformOperation.SetIfNotExists)
                         continue;
 
                     // get new target value
