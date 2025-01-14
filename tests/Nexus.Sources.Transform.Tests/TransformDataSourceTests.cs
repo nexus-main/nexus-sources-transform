@@ -394,6 +394,64 @@ public class TransformDataSourceTests
     }
 
     [Fact]
+    public async Task CanExpandVariables()
+    {
+        // Arrange
+        var expected = "my_file_source_id_foo_something_else";
+        var originalName = "foo in meters per second";
+
+        /* data source setup */
+        var transform = new PropertyTransform(
+            Operation: default,
+            SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: "(.*) in.*",
+            TargetProperty: "id",
+            TargetTemplate: "${file-source-id}_$1_${something-else}",
+            Separator: default
+        );
+
+        var settings = new TransformSettings(
+            IdTransforms: [],
+            PropertyTransforms: [transform]
+        );
+
+        var sourceConfiguration = JsonSerializer
+            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
+
+        var context = new DataSourceContext(
+            ResourceLocator: default,
+            SystemConfiguration: default,
+            SourceConfiguration: sourceConfiguration,
+            RequestConfiguration: default
+        );
+
+        var dataSource = new Transform();
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        /* catalog setup */
+        var resource = new ResourceBuilder(id: "foo")
+            .WithOriginalName(originalName)
+            .WithProperty("file-source-id", "my_file_source_id")
+            .WithProperty("something-else", "something_else")
+            .Build();
+
+        var catalog = new ResourceCatalogBuilder(id: "/bar")
+            .AddResource(resource)
+            .Build();
+
+        // Act
+        var actualCatalog = await dataSource
+            .EnrichCatalogAsync(catalog, CancellationToken.None);
+
+        // Assert
+        var actual = actualCatalog.Resources![0].Properties!
+            .GetStringValue(["id"]);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public async Task DoesNotModifyPropertiesIfNoMatch()
     {
         // Arrange

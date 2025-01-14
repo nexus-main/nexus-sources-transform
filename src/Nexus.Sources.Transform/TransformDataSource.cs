@@ -21,7 +21,10 @@ internal record PropertyTransform(
     string? TargetProperty,
     string? TargetTemplate,
     string? Separator
-);
+)
+{
+    public bool NeedsVariableExpansion { get; set; }
+}
 
 internal record IdTransform(
     // TransformTarget target, /* (catalog vs. resource - maybe required later) */
@@ -41,7 +44,7 @@ internal record TransformSettings(
     "A data source to transform catalog properties like resources names and group memberships",
     "https://github.com/nexus-main/nexus-sources-transform",
     "https://github.com/nexus-main/nexus-sources-transform")]
-public class Transform : IDataSource
+public partial class Transform : IDataSource
 {
     private const string DEFAULT_TARGET_TEMPLATE = "$1";
 
@@ -51,12 +54,24 @@ public class Transform : IDataSource
 
     private ILogger _logger = default!;
 
+    [GeneratedRegex(@"\${(.*?)}")]
+    private partial Regex VariableExpansionRegex { get; }
+
     /// <inheritdoc/>
     public Task SetContextAsync(DataSourceContext context, ILogger logger, CancellationToken cancellationToken)
     {
         // TODO: this is not so nice
         _settings = JsonSerializer
             .Deserialize<TransformSettings>(JsonSerializer.Serialize(context.SourceConfiguration));
+
+        if (_settings is not null && _settings.PropertyTransforms is not null)
+        {
+            foreach (var propertyTransform in _settings.PropertyTransforms)
+            {
+                if (propertyTransform.TargetTemplate is not null)
+                    propertyTransform.NeedsVariableExpansion = VariableExpansionRegex.IsMatch(propertyTransform.TargetTemplate);
+            }
+        }
 
         _logger = logger;
 
@@ -130,11 +145,17 @@ public class Transform : IDataSource
                     if (!isMatch)
                         continue;
 
+                    var targetTemplate = transform.TargetTemplate is null
+                        ? DEFAULT_TARGET_TEMPLATE
+                        : transform.NeedsVariableExpansion
+                            ? ExpandVariables(transform.TargetTemplate, resourceProperties)
+                            : transform.TargetTemplate;
+
                     var targetValue = Regex
                         .Replace(
                             input: sourceValue,
                             pattern: transform.SourcePattern,
-                            replacement: transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
+                            replacement: targetTemplate
                         );
 
                     // apply value
@@ -216,5 +237,23 @@ public class Transform : IDataSource
     public Task ReadAsync(DateTime begin, DateTime end, ReadRequest[] requests, ReadDataHandler readData, IProgress<double> progress, CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    private string ExpandVariables(string targetTemplate, IReadOnlyDictionary<string, JsonElement>? resourceProperties)
+    {
+        return VariableExpansionRegex.Replace(targetTemplate, match =>
+        {
+            var path = match.Groups[1].Value;
+
+            if (!_pathCache.TryGetValue(path, out var pathSegments))
+            {
+                pathSegments = path.Split('/');
+                _pathCache[path] = pathSegments;
+            }
+
+            return resourceProperties is null
+                ? ""
+                : resourceProperties.GetStringValue(pathSegments) ?? "";
+        });
     }
 }

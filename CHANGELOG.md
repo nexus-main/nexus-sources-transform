@@ -1,5 +1,9 @@
 ## v2.0.0-beta.45 - 2025-01-14
 
+- Added variable support.
+
+## v2.0.0-beta.45 - 2025-01-14
+
 - Execute transform id after transform property.
 
 ## v2.0.0-beta.44 - 2025-01-14
