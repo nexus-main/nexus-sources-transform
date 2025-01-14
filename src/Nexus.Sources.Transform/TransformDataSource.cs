@@ -30,8 +30,8 @@ internal record IdTransform(
 );
 
 internal record TransformSettings(
-    IdTransform[]? IdTransforms,
-    PropertyTransform[]? PropertyTransforms
+    PropertyTransform[]? PropertyTransforms,
+    IdTransform[]? IdTransforms
 );
 
 /// <summary>
@@ -86,24 +86,6 @@ public class Transform : IDataSource
         foreach (var resource in catalog.Resources)
         {
             var localResource = resource;
-
-            // resource id
-            if (_settings.IdTransforms is not null)
-            {
-                var newId = resource.Id;
-
-                foreach (var transform in _settings.IdTransforms)
-                {
-                    newId = Regex.Replace(
-                        newId,
-                        transform.SourcePattern,
-                        transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
-                    );
-                }
-
-                if (_settings.IdTransforms.Length != 0)
-                    localResource = resource with { Id = newId };
-            }
 
             // resource properties
             var resourceProperties = localResource.Properties;
@@ -176,6 +158,24 @@ public class Transform : IDataSource
                         }   
                     }
                 }
+            }
+
+            // resource id
+            if (_settings.IdTransforms is not null)
+            {
+                var newId = resource.Id;
+
+                foreach (var transform in _settings.IdTransforms)
+                {
+                    newId = Regex.Replace(
+                        newId,
+                        transform.SourcePattern,
+                        transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
+                    );
+                }
+
+                if (_settings.IdTransforms.Length != 0)
+                    localResource = resource with { Id = newId };
             }
 
             if (newResourceProperties is null)
