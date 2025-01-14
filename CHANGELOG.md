@@ -1,4 +1,4 @@
-## v2.0.0-beta.45 - 2025-01-14
+## v2.0.0-beta.46 - 2025-01-14
 
 - Added variable support.
 
