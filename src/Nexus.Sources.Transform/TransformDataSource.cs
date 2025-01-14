@@ -18,7 +18,7 @@ internal record PropertyTransform(
     TransformOperation Operation,
     string SourcePath,
     string SourcePattern,
-    string TargetProperty,
+    string? TargetProperty,
     string? TargetTemplate,
     string? Separator
 );
@@ -133,11 +133,14 @@ public class Transform : IDataSource
                     }
 
                     // get target value
-                    var existingValue = newResourceProperties.GetValueOrDefault(transform.TargetProperty);
-                    var isNullOrUndefined = existingValue.ValueKind == JsonValueKind.Null || existingValue.ValueKind == JsonValueKind.Undefined;
+                    if (transform.TargetProperty is not null)
+                    {
+                        var existingValue = newResourceProperties.GetValueOrDefault(transform.TargetProperty);
+                        var isNullOrUndefined = existingValue.ValueKind == JsonValueKind.Null || existingValue.ValueKind == JsonValueKind.Undefined;
 
-                    if (!isNullOrUndefined && transform.Operation == TransformOperation.SetIfNotExists)
-                        continue;
+                        if (!isNullOrUndefined && transform.Operation == TransformOperation.SetIfNotExists)
+                            continue;
+                    }
 
                     // get new target value
                     var isMatch = Regex.IsMatch(sourceValue, transform.SourcePattern);
@@ -152,16 +155,25 @@ public class Transform : IDataSource
                             replacement: transform.TargetTemplate ?? DEFAULT_TARGET_TEMPLATE
                         );
 
-                    if (transform.Separator is null)
+                    // apply value
+                    if (transform.TargetProperty is null)
                     {
-                        newResourceProperties[transform.TargetProperty]
-                            = JsonSerializer.SerializeToElement(targetValue);
+                        localResource = resource with { Id = targetValue };
                     }
 
                     else
                     {
-                        newResourceProperties[transform.TargetProperty]
-                            = JsonSerializer.SerializeToElement(targetValue.Split(transform.Separator));
+                        if (transform.Separator is null)
+                        {
+                            newResourceProperties[transform.TargetProperty]
+                                = JsonSerializer.SerializeToElement(targetValue);
+                        }
+
+                        else
+                        {
+                            newResourceProperties[transform.TargetProperty]
+                                = JsonSerializer.SerializeToElement(targetValue.Split(transform.Separator));
+                        }   
                     }
                 }
             }

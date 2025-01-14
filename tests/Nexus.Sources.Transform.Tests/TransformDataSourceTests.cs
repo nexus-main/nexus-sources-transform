@@ -97,10 +97,10 @@ public class TransformDataSourceTests
         /* data source setup */
         var transform = new PropertyTransform(
             Operation: default,
-            SourcePattern: sourcePattern,
-            TargetTemplate: targetTemplate,
             SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: sourcePattern,
             TargetProperty: DataModelExtensions.UnitKey,
+            TargetTemplate: targetTemplate,
             Separator: default
         );
 
@@ -157,19 +157,19 @@ public class TransformDataSourceTests
         /* data source setup */
         var transform1 = new PropertyTransform(
             Operation: default,
-            SourcePattern: sourcePattern1,
-            TargetTemplate: targetTemplate1,
             SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: sourcePattern1,
             TargetProperty: DataModelExtensions.UnitKey,
+            TargetTemplate: targetTemplate1,
             Separator: default
         );
 
         var transform2 = new PropertyTransform(
             Operation: default,
-            SourcePattern: sourcePattern2,
-            TargetTemplate: targetTemplate2,
             SourcePath: DataModelExtensions.UnitKey,
+            SourcePattern: sourcePattern2,
             TargetProperty: DataModelExtensions.UnitKey,
+            TargetTemplate: targetTemplate2,
             Separator: default
         );
 
@@ -222,10 +222,10 @@ public class TransformDataSourceTests
         /* data source setup */
         var transform = new PropertyTransform(
             Operation: default,
-            SourcePattern: sourcePattern,
-            TargetTemplate: default,
             SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: sourcePattern,
             TargetProperty: DataModelExtensions.UnitKey,
+            TargetTemplate: default,
             Separator: default
         );
 
@@ -281,10 +281,10 @@ public class TransformDataSourceTests
         /* data source setup */
         var transform = new PropertyTransform(
             Operation: default,
-            SourcePattern: sourcePattern,
-            TargetTemplate: targetTemplate,
             SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: sourcePattern,
             TargetProperty: DataModelExtensions.GroupsKey,
+            TargetTemplate: targetTemplate,
             Separator: separator
         );
 
@@ -327,6 +327,62 @@ public class TransformDataSourceTests
         Assert.Equal(expected, actual);
     }
 
+    [Fact]
+    public async Task CanDeriveIdFromOriginalName()
+    {
+        // Arrange
+        var originalName = "v_horz_100m_blue_avg in m/s";
+        var sourcePattern = @"(.*)\sin .*";
+        var expected = "v_horz_100m_blue_avg";
+
+        /* data source setup */
+        var transform = new PropertyTransform(
+            Operation: default,
+            SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: sourcePattern,
+            TargetProperty: default,
+            TargetTemplate: default,
+            Separator: default
+        );
+
+        var settings = new TransformSettings(
+            IdTransforms: [],
+            PropertyTransforms: [transform]
+        );
+
+        var sourceConfiguration = JsonSerializer
+            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
+
+        var context = new DataSourceContext(
+            ResourceLocator: default,
+            SystemConfiguration: default,
+            SourceConfiguration: sourceConfiguration,
+            RequestConfiguration: default
+        );
+
+        var dataSource = new Transform();
+
+        await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
+
+        /* catalog setup */
+        var resource = new ResourceBuilder(id: "foo")
+            .WithOriginalName(originalName)
+            .Build();
+
+        var catalog = new ResourceCatalogBuilder(id: "/bar")
+            .AddResource(resource)
+            .Build();
+
+        // Act
+        var actualCatalog = await dataSource
+            .EnrichCatalogAsync(catalog, CancellationToken.None);
+
+        // Assert
+        var actual = actualCatalog.Resources![0].Id;
+
+        Assert.Equal(expected, actual);
+    }
+
     [Theory]
 
     /* test creation of missing value or replacement of wrong value */
@@ -346,10 +402,10 @@ public class TransformDataSourceTests
         /* data source setup */
         var transform = new PropertyTransform(
             Operation: operation,
-            SourcePattern: ".*",
-            TargetTemplate: "$0",
             SourcePath: DataModelExtensions.OriginalNameKey,
+            SourcePattern: ".*",
             TargetProperty: DataModelExtensions.UnitKey,
+            TargetTemplate: "$0",
             Separator: default
         );
 
