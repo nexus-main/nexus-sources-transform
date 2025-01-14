@@ -94,8 +94,6 @@ public class Transform : IDataSource
 
                 foreach (var transform in _settings.IdTransforms)
                 {
-                    _logger.LogDebug("Processing identifier transform");
-
                     newId = Regex.Replace(
                         newId,
                         transform.SourcePattern,
@@ -119,8 +117,6 @@ public class Transform : IDataSource
 
                 foreach (var transform in _settings.PropertyTransforms)
                 {
-                    _logger.LogDebug("Processing property transform");
-
                     // get source value
                     if (!_pathCache.TryGetValue(transform.SourcePath, out var sourcePathSegments))
                     {
@@ -137,15 +133,9 @@ public class Transform : IDataSource
                     }
 
                     // get target value
-                    if (!_pathCache.TryGetValue(transform.TargetProperty, out var targetPathSegments))
-                    {
-                        targetPathSegments = [transform.TargetProperty];
-                        _pathCache[transform.TargetProperty] = targetPathSegments;
-                    }
+                    var existingValue = newResourceProperties.GetValueOrDefault(transform.TargetProperty);
 
-                    var existingValue = newResourceProperties.GetStringValue(targetPathSegments);
-
-                    if (existingValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
+                    if (existingValue.ValueKind != JsonValueKind.Null && transform.Operation == TransformOperation.SetIfNotExists)
                         continue;
 
                     // get new target value
