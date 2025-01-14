@@ -1,3 +1,7 @@
+## v2.0.0-beta.40 - 2025-01-14
+
+- Improve logging
+
 ## v2.0.0-beta.39 - 2025-01-13
 
 - Fixed the extension name

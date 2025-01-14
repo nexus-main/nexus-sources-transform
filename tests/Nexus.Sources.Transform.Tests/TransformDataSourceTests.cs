@@ -45,7 +45,7 @@ public class TransformDataSourceTests
             RequestConfiguration: default
         );
 
-        var dataSource = new TransformDataSource();
+        var dataSource = new Transform();
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -119,7 +119,7 @@ public class TransformDataSourceTests
             RequestConfiguration: default
         );
 
-        var dataSource = new TransformDataSource();
+        var dataSource = new Transform();
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -178,7 +178,7 @@ public class TransformDataSourceTests
             RequestConfiguration: default
         );
 
-        var dataSource = new TransformDataSource();
+        var dataSource = new Transform();
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 
@@ -242,7 +242,7 @@ public class TransformDataSourceTests
             RequestConfiguration: default
         );
 
-        var dataSource = new TransformDataSource();
+        var dataSource = new Transform();
 
         await dataSource.SetContextAsync(context, NullLogger.Instance, CancellationToken.None);
 

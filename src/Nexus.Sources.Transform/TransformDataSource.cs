@@ -49,12 +49,16 @@ public class Transform : IDataSource
 
     private TransformSettings? _settings;
 
+    private ILogger _logger;
+
     /// <inheritdoc/>
     public Task SetContextAsync(DataSourceContext context, ILogger logger, CancellationToken cancellationToken)
     {
         // TODO: this is not so nice
         _settings = JsonSerializer
             .Deserialize<TransformSettings>(JsonSerializer.Serialize(context.SourceConfiguration));
+
+        _logger = logger;
 
         return Task.CompletedTask;
     }
@@ -84,6 +88,8 @@ public class Transform : IDataSource
 
                 foreach (var transform in _settings.IdTransforms)
                 {
+                    _logger.LogDebug("Processing identifier transform");
+
                     newId = Regex.Replace(
                         newId,
                         transform.SourcePattern,
@@ -95,6 +101,11 @@ public class Transform : IDataSource
                     localResource = resource with { Id = newId };
             }
 
+            else
+            {
+                _logger.LogDebug("There are no identifier transforms to process");
+            }
+
             // resource properties
 
             var resourceProperties = localResource.Properties;
@@ -104,6 +115,8 @@ public class Transform : IDataSource
             {
                 foreach (var transform in _settings.PropertyTransforms)
                 {
+                    _logger.LogDebug("Processing property transform");
+
                     // get source value
                     if (!_pathCache.TryGetValue(transform.SourcePath, out var sourcePathSegments))
                     {
@@ -114,7 +127,10 @@ public class Transform : IDataSource
                     var sourceValue = resourceProperties?.GetStringValue(sourcePathSegments);
 
                     if (sourceValue is null)
+                    {
+                        _logger.LogDebug("Source path not found, skipping");
                         continue;
+                    }
 
                     // get target value
                     if (!_pathCache.TryGetValue(transform.TargetProperty, out var targetPathSegments))
@@ -135,6 +151,7 @@ public class Transform : IDataSource
                             ? []
                             : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
                     }
+
                     var newTargetValue = Regex
                         .Replace(
                             input: sourceValue,
@@ -154,6 +171,11 @@ public class Transform : IDataSource
                             = JsonSerializer.SerializeToElement(newTargetValue.Split(transform.Separator));
                     }
                 }
+            }
+
+            else
+            {
+                _logger.LogDebug("There are no property transforms to process");
             }
 
             if (newResourceProperties is null)
