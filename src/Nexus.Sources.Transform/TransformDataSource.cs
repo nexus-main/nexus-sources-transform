@@ -49,7 +49,7 @@ public class Transform : IDataSource
 
     private TransformSettings? _settings;
 
-    private ILogger _logger;
+    private ILogger _logger = default!;
 
     /// <inheritdoc/>
     public Task SetContextAsync(DataSourceContext context, ILogger logger, CancellationToken cancellationToken)
@@ -77,6 +77,12 @@ public class Transform : IDataSource
 
         var newResources = new List<Resource>();
 
+        if (_settings.IdTransforms is null)
+            _logger.LogDebug("There are no identifier transforms to process");
+
+        if (_settings.PropertyTransforms is null)
+            _logger.LogDebug("There are no property transforms to process");
+
         foreach (var resource in catalog.Resources)
         {
             var localResource = resource;
@@ -101,18 +107,16 @@ public class Transform : IDataSource
                     localResource = resource with { Id = newId };
             }
 
-            else
-            {
-                _logger.LogDebug("There are no identifier transforms to process");
-            }
-
             // resource properties
-
             var resourceProperties = localResource.Properties;
             var newResourceProperties = default(Dictionary<string, JsonElement>);
 
             if (_settings.PropertyTransforms is not null)
             {
+                newResourceProperties = resourceProperties is null
+                    ? []
+                    : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
+
                 foreach (var transform in _settings.PropertyTransforms)
                 {
                     _logger.LogDebug("Processing property transform");
@@ -124,7 +128,7 @@ public class Transform : IDataSource
                         _pathCache[transform.SourcePath] = sourcePathSegments;
                     }
 
-                    var sourceValue = resourceProperties?.GetStringValue(sourcePathSegments);
+                    var sourceValue = newResourceProperties.GetStringValue(sourcePathSegments);
 
                     if (sourceValue is null)
                     {
@@ -139,20 +143,18 @@ public class Transform : IDataSource
                         _pathCache[transform.TargetProperty] = targetPathSegments;
                     }
 
-                    var targetValue = resourceProperties?.GetStringValue(targetPathSegments);
+                    var existingValue = newResourceProperties.GetStringValue(targetPathSegments);
 
-                    if (targetValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
+                    if (existingValue is not null && transform.Operation == TransformOperation.SetIfNotExists)
                         continue;
 
                     // get new target value
-                    if (newResourceProperties is null)
-                    {
-                        newResourceProperties = resourceProperties is null
-                            ? []
-                            : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
-                    }
+                    var isMatch = Regex.IsMatch(sourceValue, transform.SourcePattern);
 
-                    var newTargetValue = Regex
+                    if (!isMatch)
+                        continue;
+
+                    var targetValue = Regex
                         .Replace(
                             input: sourceValue,
                             pattern: transform.SourcePattern,
@@ -162,20 +164,15 @@ public class Transform : IDataSource
                     if (transform.Separator is null)
                     {
                         newResourceProperties[transform.TargetProperty]
-                            = JsonSerializer.SerializeToElement(newTargetValue);
+                            = JsonSerializer.SerializeToElement(targetValue);
                     }
 
                     else
                     {
                         newResourceProperties[transform.TargetProperty]
-                            = JsonSerializer.SerializeToElement(newTargetValue.Split(transform.Separator));
+                            = JsonSerializer.SerializeToElement(targetValue.Split(transform.Separator));
                     }
                 }
-            }
-
-            else
-            {
-                _logger.LogDebug("There are no property transforms to process");
             }
 
             if (newResourceProperties is null)

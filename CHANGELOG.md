@@ -1,3 +1,7 @@
+## v2.0.0-beta.41 - 2025-01-14
+
+- Fixed some bugs in the core algorithm
+
 ## v2.0.0-beta.40 - 2025-01-14
 
 - Improve logging
