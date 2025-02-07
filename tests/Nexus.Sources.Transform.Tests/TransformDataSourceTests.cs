@@ -30,17 +30,13 @@ public class TransformDataSourceTests
             TargetTemplate: targetTemplate2
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [transform1, transform2],
             PropertyTransforms: []
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );
@@ -85,17 +81,13 @@ public class TransformDataSourceTests
             Separator: default
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );
@@ -160,17 +152,13 @@ public class TransformDataSourceTests
             Separator: default
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );
@@ -229,17 +217,13 @@ public class TransformDataSourceTests
             Separator: default
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [],
             PropertyTransforms: [transform1, transform2]
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );
@@ -288,17 +272,13 @@ public class TransformDataSourceTests
             Separator: separator
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );
@@ -353,17 +333,13 @@ public class TransformDataSourceTests
             Separator: default
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );
@@ -410,17 +386,13 @@ public class TransformDataSourceTests
             Separator: default
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );
@@ -468,17 +440,13 @@ public class TransformDataSourceTests
             Separator: default
         );
 
-        var settings = new TransformSettings(
+        var sourceConfiguration = new TransformSettings(
             IdTransforms: [],
             PropertyTransforms: [transform]
         );
 
-        var sourceConfiguration = JsonSerializer
-            .Deserialize<IReadOnlyDictionary<string, JsonElement>>(JsonSerializer.SerializeToElement(settings));
-
-        var context = new DataSourceContext(
+        var context = new DataSourceContext<TransformSettings>(
             ResourceLocator: default,
-            SystemConfiguration: default,
             SourceConfiguration: sourceConfiguration,
             RequestConfiguration: default
         );

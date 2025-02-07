@@ -6,14 +6,32 @@ using Nexus.Extensibility;
 
 namespace Nexus.Sources;
 
-internal enum TransformOperation
+/// <summary>
+/// Specifies the type of transformation operation to be performed.
+/// </summary>
+public enum TransformOperation
 {
+    /// <summary>
+    /// Always set the value, regardless of its current state.
+    /// </summary>
     SetAlways,
 
+    /// <summary>
+    /// Set the value only if it does not already exist.
+    /// </summary>
     SetIfNotExists
 }
 
-internal record PropertyTransform(
+/// <summary>
+/// Represents a transformation operation to be applied to a property.
+/// </summary>
+/// <param name="Operation">The operation to be performed during the transformation.</param>
+/// <param name="SourcePath">The path to the source data.</param>
+/// <param name="SourcePattern">The pattern to match within the source data.</param>
+/// <param name="TargetProperty">The target property where the transformed data will be applied. Can be null.</param>
+/// <param name="TargetTemplate">The template to be used for the target property. Can be null.</param>
+/// <param name="Separator">The separator to be used in the transformation. Can be null.</param>
+public record PropertyTransform(
     // TransformTarget target, /* (catalog vs. resource - maybe required later) */
     TransformOperation Operation,
     string SourcePath,
@@ -23,16 +41,26 @@ internal record PropertyTransform(
     string? Separator
 )
 {
-    public bool NeedsVariableExpansion { get; set; }
+    internal bool NeedsVariableExpansion { get; set; }
 }
 
-internal record IdTransform(
+/// <summary>
+/// Represents a transformation identifier with a source pattern and an optional target template.
+/// </summary>
+/// <param name="SourcePattern">The pattern used to identify the source.</param>
+/// <param name="TargetTemplate">The optional template used to define the target.</param>
+public record IdTransform(
     // TransformTarget target, /* (catalog vs. resource - maybe required later) */
     string SourcePattern,
     string? TargetTemplate
 );
 
-internal record TransformSettings(
+/// <summary>
+/// Represents the settings for transforming data sources.
+/// </summary>
+/// <param name="PropertyTransforms">An array of property transformations to be applied.</param>
+/// <param name="IdTransforms">An array of ID transformations to be applied.</param>
+public record TransformSettings(
     PropertyTransform[]? PropertyTransforms,
     IdTransform[]? IdTransforms
 );
@@ -44,13 +72,13 @@ internal record TransformSettings(
     "A data source to transform catalog properties like resources names and group memberships",
     "https://github.com/nexus-main/nexus-sources-transform",
     "https://github.com/nexus-main/nexus-sources-transform")]
-public partial class Transform : IDataSource
+public partial class Transform : IDataSource<TransformSettings>
 {
     private const string DEFAULT_TARGET_TEMPLATE = "$1";
 
     private readonly Dictionary<string, string[]> _pathCache = [];
 
-    private TransformSettings? _settings;
+    private DataSourceContext<TransformSettings> _context = default!;
 
     private ILogger _logger = default!;
 
@@ -58,15 +86,19 @@ public partial class Transform : IDataSource
     private partial Regex VariableExpansionRegex { get; }
 
     /// <inheritdoc/>
-    public Task SetContextAsync(DataSourceContext context, ILogger logger, CancellationToken cancellationToken)
+    public Task SetContextAsync(
+        DataSourceContext<TransformSettings> context,
+        ILogger logger,
+        CancellationToken cancellationToken
+    )
     {
-        // TODO: this is not so nice
-        _settings = JsonSerializer
-            .Deserialize<TransformSettings>(JsonSerializer.Serialize(context.SourceConfiguration));
+        _context = context;
 
-        if (_settings is not null && _settings.PropertyTransforms is not null)
+        var settings = context.SourceConfiguration;
+
+        if (settings is not null && settings.PropertyTransforms is not null)
         {
-            foreach (var propertyTransform in _settings.PropertyTransforms)
+            foreach (var propertyTransform in settings.PropertyTransforms)
             {
                 if (propertyTransform.TargetTemplate is not null)
                     propertyTransform.NeedsVariableExpansion = VariableExpansionRegex.IsMatch(propertyTransform.TargetTemplate);
@@ -79,23 +111,30 @@ public partial class Transform : IDataSource
     }
 
     /// <inheritdoc/>
-    public Task<CatalogRegistration[]> GetCatalogRegistrationsAsync(string path, CancellationToken cancellationToken)
+    public Task<CatalogRegistration[]> GetCatalogRegistrationsAsync(
+        string path,
+        CancellationToken cancellationToken
+    )
     {
         return Task.FromResult(Array.Empty<CatalogRegistration>());
     }
 
     /// <inheritdoc/>
-    public Task<ResourceCatalog> EnrichCatalogAsync(ResourceCatalog catalog, CancellationToken cancellationToken)
+    public Task<ResourceCatalog> EnrichCatalogAsync(
+        ResourceCatalog catalog,
+        CancellationToken cancellationToken
+    )
     {
-        if (catalog.Resources is null || _settings is null)
+        if (catalog.Resources is null)
             return Task.FromResult(catalog);
 
         var newResources = new List<Resource>();
+        var settings = _context.SourceConfiguration;
 
-        if (_settings.IdTransforms is null)
+        if (settings.IdTransforms is null)
             _logger.LogDebug("There are no identifier transforms to process");
 
-        if (_settings.PropertyTransforms is null)
+        if (settings.PropertyTransforms is null)
             _logger.LogDebug("There are no property transforms to process");
 
         foreach (var resource in catalog.Resources)
@@ -106,13 +145,13 @@ public partial class Transform : IDataSource
             var resourceProperties = localResource.Properties;
             var newResourceProperties = default(Dictionary<string, JsonElement>);
 
-            if (_settings.PropertyTransforms is not null)
+            if (settings.PropertyTransforms is not null)
             {
                 newResourceProperties = resourceProperties is null
                     ? []
                     : resourceProperties!.ToDictionary(entry => entry.Key, entry => entry.Value);
 
-                foreach (var transform in _settings.PropertyTransforms)
+                foreach (var transform in settings.PropertyTransforms)
                 {
                     // get source value
                     if (!_pathCache.TryGetValue(transform.SourcePath, out var sourcePathSegments))
@@ -182,11 +221,11 @@ public partial class Transform : IDataSource
             }
 
             // resource id
-            if (_settings.IdTransforms is not null)
+            if (settings.IdTransforms is not null)
             {
                 var newId = resource.Id;
 
-                foreach (var transform in _settings.IdTransforms)
+                foreach (var transform in settings.IdTransforms)
                 {
                     newId = Regex.Replace(
                         newId,
@@ -195,7 +234,7 @@ public partial class Transform : IDataSource
                     );
                 }
 
-                if (_settings.IdTransforms.Length != 0)
+                if (settings.IdTransforms.Length != 0)
                     localResource = resource with { Id = newId };
             }
 
@@ -222,24 +261,39 @@ public partial class Transform : IDataSource
     }
 
     /// <inheritdoc/>
-    public Task<(DateTime Begin, DateTime End)> GetTimeRangeAsync(string catalogId, CancellationToken cancellationToken)
+    public Task<CatalogTimeRange> GetTimeRangeAsync(string catalogId, CancellationToken cancellationToken)
     {
-        return Task.FromResult((DateTime.MaxValue, DateTime.MinValue));
+        return Task.FromResult(new CatalogTimeRange(DateTime.MaxValue, DateTime.MinValue));
     }
 
     /// <inheritdoc/>
-    public Task<double> GetAvailabilityAsync(string catalogId, DateTime begin, DateTime end, CancellationToken cancellationToken)
+    public Task<double> GetAvailabilityAsync(
+        string catalogId,
+        DateTime begin,
+        DateTime end,
+        CancellationToken cancellationToken
+    )
     {
         return Task.FromResult(double.NaN);
     }
 
     /// <inheritdoc/>
-    public Task ReadAsync(DateTime begin, DateTime end, ReadRequest[] requests, ReadDataHandler readData, IProgress<double> progress, CancellationToken cancellationToken)
+    public Task ReadAsync(
+        DateTime begin,
+        DateTime end,
+        ReadRequest[] requests,
+        ReadDataHandler readData,
+        IProgress<double> progress,
+        CancellationToken cancellationToken
+    )
     {
         return Task.CompletedTask;
     }
 
-    private string ExpandVariables(string targetTemplate, IReadOnlyDictionary<string, JsonElement>? resourceProperties)
+    private string ExpandVariables(
+        string targetTemplate,
+        IReadOnlyDictionary<string, JsonElement>? resourceProperties
+    )
     {
         return VariableExpansionRegex.Replace(targetTemplate, match =>
         {
