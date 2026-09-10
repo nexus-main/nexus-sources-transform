@@ -2,7 +2,6 @@
 
 - Follow Nexus changes
 
-
 ## v2.0.0-beta.48 - 2025-02-07
 
 - Follow Nexus changes
