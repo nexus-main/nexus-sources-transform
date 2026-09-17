@@ -36,9 +36,9 @@ public record PropertyTransform(
     TransformOperation Operation,
     string SourcePath,
     string SourcePattern,
-    string? TargetProperty,
-    string? TargetTemplate,
-    string? Separator
+    string? TargetProperty = default,
+    string? TargetTemplate = default,
+    string? Separator = default
 )
 {
     internal bool NeedsVariableExpansion { get; set; }
@@ -52,7 +52,7 @@ public record PropertyTransform(
 public record IdTransform(
     // TransformTarget target, /* (catalog vs. resource - maybe required later) */
     string SourcePattern,
-    string? TargetTemplate
+    string? TargetTemplate = default
 );
 
 /// <summary>
@@ -61,8 +61,8 @@ public record IdTransform(
 /// <param name="PropertyTransforms">An array of property transformations to be applied.</param>
 /// <param name="IdTransforms">An array of ID transformations to be applied.</param>
 public record TransformSettings(
-    PropertyTransform[]? PropertyTransforms,
-    IdTransform[]? IdTransforms
+    PropertyTransform[]? PropertyTransforms = default,
+    IdTransform[]? IdTransforms = default
 );
 
 /// <summary>
